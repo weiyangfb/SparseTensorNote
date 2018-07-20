@@ -17,7 +17,7 @@
 |Functions|need autograd|dense grad|
 |---|:---:|:---:|
 |nonzero|Y|N|
-|sum|n|Y|
+|sum|N|Y|
 |copy_|Y|N|
 |narrow|Y||
 |select_index|Y||
