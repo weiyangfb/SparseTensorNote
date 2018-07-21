@@ -15,6 +15,7 @@
 - functions
 
 -- TODO
+
 |Functions|need autograd|dense grad|
 |---|:---:|:---:|
 |nonzero|     Y|N|
