@@ -97,7 +97,8 @@ v = tensor([])
 >>> print('a.dim = %d, i.dim = %d, v.dim = %d' % (a.dim(), i.dim(), v.dim()))
 a.dim = 2, i.dim = 1, v.dim = 1
 
->>> print('a._dimI = %d, a._sparseDims = %d, a._dimV = %d, a._denseDims = %d, a._nnz = %d' % (a._dimI(), a._sparseDims(), a._dimV(), a._denseDims(), a._nnz()))
+>>> print('a._dimI = %d, a._sparseDims = %d, a._dimV = %d, a._denseDims = %d, a._nnz = %d' % 
+          (a._dimI(), a._sparseDims(), a._dimV(), a._denseDims(), a._nnz()))
 a._dimI = 0, a._sparseDims = 2, a._dimV = 0, a._denseDims = 0, a._nnz = 0
 ```
 
