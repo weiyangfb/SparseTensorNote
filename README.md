@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This note tries to summarize the current state of sparse tensor in pytorch. It describes important invariance and properties of sparse tensor, various things that need to be fixed (e.g. empty sparse tensor), and shows some details of sparse operators.
+This note tries to summarize the current state of sparse tensor in pytorch. It describes important invariance and properties of sparse tensor, and various things need to be fixed (e.g. empty sparse tensor). It also shows some details of sparse operators.
 
 
 ## Semantics
@@ -40,12 +40,12 @@ torch.sparse.FloatTensor()
 torch.sparse.DoubleTensor()
 torch.zeros(..., layout=torch.sparse_coo, ...)
 ```
-Should we unify/reduce different ways for creating sparse tensor?
+Should we unify/reduce different approaches?
 
 
 ## Sparse representation
 
-Currently, our sparse tensors are hybrid tensors, with a mix of sparse dims and dense dims. We keep track of nnz, sparseDims, denseDims, a indices tensor of size = (sparseDims, nnz), and a values tensor of size (nnz, size[sparseDims:]). Additionally, we have a flag to note if the tensor is coalesced.
+Currently, our sparse tensors are hybrid tensors, with a mix of sparse dims and dense dims. We keep track of `nnz`, `sparseDims`, `denseDims`, a `indices tensor of size = (sparseDims, nnz)`, and a `values tensor of size (nnz, size[sparseDims:])`. Additionally, we have a flag to note if the tensor is `coalesced`.
 
 ### Should we keep this representation?
 
@@ -57,7 +57,7 @@ Currently, our sparse tensors are hybrid tensors, with a mix of sparse dims and 
 
 ### A couple caveats with our current system
 
-- We're keeping track of `nnz`, `sparseDims`, `denseDims` and `coalesced` independently of the indices and values tensors. For instance, we may need to write the following code to maintain the invariance:
+- We're keeping track of nnz, sparseDims, denseDims and coalesced independently of the indices and values tensors. For instance, we may need to write the following code to maintain the invariance:
 ```
 _get_sparse_impl(r)->set_indices_and_values(r_indices, r_values);
 _get_sparse_impl(r)->set_nnz(t._nnz());
@@ -140,16 +140,15 @@ and values:
 tensor([4., 6., 8.])
 ```
 
-A lot of operators on sparse tensors have densified gradients. e.g., `log1p` would make all 0 inputs have a gradient of 1, and it densifies the sparse tensor gradients. Some potential ways to fix:
+A lot of operators on sparse tensors have densified gradients. e.g., `log1p` would make all 0 inputs have a gradient of 1, and it densifies the sparse tensor gradients. Currently we have to raise errors in the backward of these operators. Some potential ways to fix:
 
-- Define special sparse operations so that they operate only on the nnz. This works well for functions that take a single input tensor. For example, we can define sparse log1p such that implicit 0s do not participate, and it would allow us to have a sparse gradient tensor. We can call this operator `s_log1p` or `nnz_log1p` (#1369 has similar discussions).
+- Define special sparse operations so that they operate only on the nnz. This works well for functions that take a single input tensor. For example, we can define sparse log1p such that implicit 0s do not participate, and it would allow us to have a sparse gradient tensor. We can call this operator `s_log1p` or `nnz_log1p` (#1369 has similar discussions). However, we are not sure if they are really what users want, because these operators have different behaviors to their dense counterpart.
 
-- Return a dense gradient, and have backward functions able to handle both of dense and sparse gradients. No special treatment need to be done during autograd, just more functions need to be written.
+- Return a dense gradient. We can have backward functions able to handle both of dense and sparse gradients. No special treatment needed during autograd, just more functions to be written.
 
-- Just return the gradient as a sparse tensor, even though we know it might be completely dense. This is awful for 
-performance.
+- Return the gradient as a sparse tensor. Even though we know a tensor might be completely dense, we can still choose to return its sparse form. This is awful for performance.
 
-- No backward for densified gradients of sparse operator, and users need to call `to_dense` and apply dense operators instead. This will not work without backward for `to_dense`, which itself will have a densified gradients, and it brings us back to the 2nd proposal.
+- No backward for densified gradients of sparse operator. Users need to call `to_dense` and apply dense operators instead. This will not work without backward for `to_dense`, which itself will have a densified gradients, and it brings us back to the 2nd proposal.
 
 
 ## Functions
