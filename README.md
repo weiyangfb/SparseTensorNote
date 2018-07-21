@@ -8,7 +8,7 @@
 
 ## Functions
 
-- Pointwise one tensor math
+### Pointwise one tensor math
 
 |functions|need autograd|dense grad|
 |---|:---:|:---:|
@@ -18,7 +18,7 @@
 |mul_ / mul(Sparse, Scalar)|Y|Y|
 
 
-- Pointwise two tensor math
+### Pointwise two tensor math
 
 |functions|need autograd|dense grad|
 |---|:---:|:---:|
@@ -28,7 +28,7 @@
 |mul_ / mul(Sparse, Sparse) → Sparse|Y|Y|
 
 
-- BLAS
+### BLAS
 
 |functions|need autograd|dense grad|
 |---|:---:|:---:|
@@ -54,7 +54,7 @@
 
 ## Future work
 
-- TODO functions
+### TODO functions
 
 |Functions|need autograd|dense grad|
 |---|:---:|:---:|
