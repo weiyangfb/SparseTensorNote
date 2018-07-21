@@ -17,6 +17,8 @@
 |div_ / div(Sparse, Scalar)|Y|Y|
 |mul_ / mul(Sparse, Scalar)|Y|Y|
 
+All pointwise one tensor calls dense couterpart ops on `_values`. Specialized backward functions are needed for those with dense grad. The backward grad tensor will be a densified sparse tensor if we use the same formula in the backward of dense tensor. This is not ideal because it requires more memory and runs slower. Also for `pow`, we need to return a sparse grad in its sparse backward function.
+
 
 ### Pointwise two tensor math
 
@@ -40,7 +42,7 @@
 |spmm(Sparse, Dense) → Dense|Y|Y|
 
 
-- Others
+### Others
 
 |functions|need autograd|dense grad|
 |---|:---:|:---:|
