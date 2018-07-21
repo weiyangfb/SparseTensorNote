@@ -29,6 +29,11 @@ All pointwise one tensor calls dense couterpart ops on `_values`. Specialized ba
 |sub_ / sub(Sparse, Sparse, Scalar) → Sparse|Y|Y|
 |mul_ / mul(Sparse, Sparse) → Sparse|Y|Y|
 
+All pointwise two tensor functions have properly optimized CUDA kernel except for `mul_ / mul` (its CUDA kernel needs to be parallelized):
+- `add_ / add(Sparse, Sparse, Scalar) → Sparse` returns cat(Sparse, Scalar * Sparse)
+- `add_ / add(Dense, Sparse, Scalar) → Dense` parallelizes over nnz
+- `sub_ / sub(Sparse, Sparse, Scalar) → Sparse` calls `add`
+
 
 ### BLAS
 
