@@ -155,24 +155,24 @@ performance.
 
 ### Pointwise one tensor math
 
-|functions|need autograd|dense grad|
-|---|:---:|:---:|
-|pow|Y|N|
-|log1p|Y|Y|
-|div_ / div(Sparse, Scalar)|Y|Y|
-|mul_ / mul(Sparse, Scalar)|Y|Y|
+|functions|dense grad|
+|---|:---:|
+|pow|N|
+|log1p|Y|
+|div_ / div(Sparse, Scalar)|Y|
+|mul_ / mul(Sparse, Scalar)|Y|
 
 All pointwise one tensor calls dense couterpart ops on `_values`. Specialized backward functions are needed for those with dense grad. The backward grad tensor will be a densified sparse tensor if we use the same formula in the backward of dense tensor. This is not ideal because it requires more memory and runs slower. Also for `pow`, we need to return a sparse grad in its sparse backward function.
 
 
 ### Pointwise two tensor math
 
-|functions|need autograd|dense grad|
+|functions|formula|dense grad|
 |---|:---:|:---:|
-|add_ / add(Sparse, Sparse, Scalar) → Sparse|Y|Y|
-|add_ / add(Dense, Sparse, Scalar) → Dense|Y|Y|
-|sub_ / sub(Sparse, Sparse, Scalar) → Sparse|Y|Y|
-|mul_ / mul(Sparse, Sparse) → Sparse|Y|Y|
+|add_ / add(Sparse, Sparse, Scalar) → Sparse|add(T, S, alpha) = T + alpha * S|Y|
+|add_ / add(Dense, Sparse, Scalar) → Dense|add(T, S, alpha) = T + alpha * S|Y|
+|sub_ / sub(Sparse, Sparse, Scalar) → Sparse|sub(T, S, alpha) = T - alpha * S|Y|
+|mul_ / mul(Sparse, Sparse) → Sparse|mul(T, S) = T * S|Y|
 
 All pointwise two tensor functions have properly optimized CUDA kernel except for `mul_ / mul`:
 - `add_ / add(Sparse, Sparse, Scalar) → Sparse` returns cat(Sparse, Scalar * Sparse)
@@ -185,26 +185,26 @@ All pointwise two tensor functions have properly optimized CUDA kernel except fo
 
 ### BLAS
 
-|functions|need autograd|dense grad|
+|functions|formula|dense grad|
 |---|:---:|:---:|
-|addmm(Dense, Sparse, Dense, Scalar, Scalar) → Dense|Y|Y|
-|sspaddmm(Sparse, Sparse, Dense, Scalar, Scalar) → Sparse|Y|Y|
-|mm(Sparse, Dense) → Dense|Y|Y|
-|smm(Sparse, Dense) → Sparse|Y|Y|
-|hspmm(Sparse, Dense) → HybridSparse|Y|Y|
-|spmm(Sparse, Dense) → Dense|Y|Y|
+|addmm(Dense, Sparse, Dense, Scalar, Scalar) → Dense|addmm(T, S, D, beta, alpha) = beta * T + alpha * matmul(S, D)|Y|
+|sspaddmm(Sparse, Sparse, Dense, Scalar, Scalar) → Sparse|sspaddmm(T, S, D, beta, alpha) = beta * T + alpha * matmul(S, D)|Y|
+|mm(Sparse, Dense) → Dense|mm(S, D) = matmul(S, D)|Y|
+|smm(Sparse, Dense) → Sparse|smm(S, D) = matmul(S, D)|Y|
+|hspmm(Sparse, Dense) → HybridSparse|hspmm(S, D) = matmul(S, D)|Y|
+|spmm(Sparse, Dense) → Dense|spmm(S, D) = matmul(S, D)|Y|
 
 Functions with CUDA kernel well optimized are `mm`, `addmm` and `hspmm`. `addmm` and `hspmm` use cuSPARSE (cusparseScsrmm2 and cusparseDcsrmm2) in CUDA kernel, and `mm` calls `addmm`. `smm` and `sspaddmm` don't have CUDA support yet.
 
 
 ### Others
 
-|functions|need autograd|dense grad|
-|---|:---:|:---:|
-|clone|N|N|
-|norm|Y|N|
-|zero_|N|N|
-|t_ / t|Y|N|
+|functions|dense grad|
+|---|:---:|
+|clone|NA|
+|norm|N|
+|zero_|N|
+|t_ / t|N|
 
 
 ## Optimizers
@@ -218,22 +218,24 @@ Functions with CUDA kernel well optimized are `mm`, `addmm` and `hspmm`. `addmm`
 
 ### TODO functions
 
-|Functions|need autograd|dense grad|
-|---|:---:|:---:|
-|nonzero|         Y|  N|
-|sum|             Y|  Y|
-|copy_|           Y|  N|
-|narrow|          Y|  N|
-|select_index|    Y|  N|
-|mul_ / mul(S, D)|Y|  Y|
-|cuda|            N|  N|
-|F.linear|        Y|  Y|
-|softmax|         Y|  N|
-|cat|             Y|  N|
-|max|             Y|  N|
-|bmm(S, D)|       Y|  Y|
+|Functions|dense grad|
+|---|:---:|
+|nonzero|           N|
+|sum|               Y|
+|copy_|             N|
+|narrow|            N|
+|select_index|      N|
+|mul_ / mul(S, D)|  Y|
+|cuda|              NA|
+|F.linear|          Y|
+|softmax|           N|
+|cat|               N|
+|max|               N|
+|bmm(S, D)|         Y|
 
-There is a list of pointwise functions for sparse can be implemented by calling dense ops on their `_values`, some helpers or macros can be written to make all of these ops available for sparse.
-- abs, acos, asin, atan, ceil, cos, cosh, erf, exp, expm1, floor, log, log10, log2, round, sin, sinh, sqrt, rsqrt, tan, trunc
-
+- There is a list of pointwise functions for sparse can be implemented by calling dense ops on their `_values`, some helpers or macros can be written to make all of these ops available for sparse.
+```
+abs, acos, asin, atan, ceil, cos, cosh, erf, exp, expm1, floor, 
+log, log10, log2, round, sin, sinh, sqrt, rsqrt, tan, trunc
+```
 
