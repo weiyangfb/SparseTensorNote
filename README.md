@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This note tries to summarize the current state of sparse tensor in pytorch. It describes important invariants and properties of sparse tensor, various things that need to be fixed (e.g. empty sparse tensor), and shows some details of sparse operators.
+This note tries to summarize the current state of sparse tensor in pytorch. It describes important invariance and properties of sparse tensor, various things that need to be fixed (e.g. empty sparse tensor), and shows some details of sparse operators.
 
 
 ## Semantics
@@ -34,21 +34,35 @@ and values:
 tensor([2., 3., 4.], device='cuda:0')
 ```
 
+### More approaches in creating a sparse tensor
+```
+torch.sparse.FloatTensor()
+torch.sparse.DoubleTensor()
+torch.zeros(..., layout=torch.sparse_coo, ...)
+```
+Should we unify/reduce different ways for creating sparse tensor?
+
 
 ## Sparse representation
 
-Currently, our sparse tensors are actually hybrid tensors, with some sparse dims and some dense dims. We keep track of nnz, sparseDims, denseDims, a size (sparseDims, nnz) indices tensor, and a size (nnz, ...) values tensor, where ... is the size of an individual value. Additionally, we have a flag to note if the tensor is coalesced.
+Currently, our sparse tensors are hybrid tensors, with a mix of sparse dims and dense dims. We keep track of nnz, sparseDims, denseDims, a indices tensor of size = (sparseDims, nnz), and a values tensor of size (nnz, size[sparseDims:]). Additionally, we have a flag to note if the tensor is coalesced.
 
 ### Should we keep this representation?
 
-- Our currently hybrid representation has some issues. It's difficult to support operators on hybrid tensors, *especially because only embedding uses hybrid*. Furthermore, some functions have ambiguous outputs on hybrid tensors (e.g. transposing a dense dim and a sparse dim is ambiguous). Because of this, it makes sense to have embedding has a special case, and only support “true” sparse tensors.
+- Our currently hybrid representation has some issues. It's difficult to support operators on hybrid tensors, *especially because only embedding uses hybrid*. Furthermore, some functions have ambiguous outputs on hybrid tensors (e.g. transposing a dense dim and a sparse dim is ambiguous). Because of this, it makes sense to have embedding has a special case, and only support “true” sparse tensors with denseDims = 0.
 
 - Many sparse libraries use CSR because it's really efficient for ops such as mm. Ideally, we'd like to make use of these libraries, but it's difficult: CSR can't represent more than 2D, but COO requires a lot of conversions. Potential solution: caching CSR representations?
 
 - Caffe2 uses per-row counts to represent sparse tensors, and they have some level of sparse support.
 
 ### A couple caveats with our current system
-- We're keeping track of `nnz`, `sparseDims`, `denseDims` and `is_coalesce` independently of the indices and values tensors
+
+- We're keeping track of `nnz`, `sparseDims`, `denseDims` and `coalesced` independently of the indices and values tensors. For instance, we may need to write the following code to maintain the invariance:
+```
+_get_sparse_impl(r)->set_indices_and_values(r_indices, r_values);
+_get_sparse_impl(r)->set_nnz(t._nnz());
+_get_sparse_impl(r)->set_coalesced(t.is_coalesced());
+```
 
 - Without support for 0-dim tensors, we cannot have proper support for scalar sparse tensors. This makes it unclear how to implement ops like reduction ops.
 
