@@ -194,7 +194,7 @@ All pointwise two tensor functions have properly optimized CUDA kernel except fo
 |hspmm(Sparse, Dense) → HybridSparse|hspmm(S, D) = matmul(S, D)|Y|
 |spmm(Sparse, Dense) → Dense|spmm(S, D) = matmul(S, D)|Y|
 
-Functions with CUDA kernel well optimized are `mm`, `addmm` and `hspmm`. `addmm` and `hspmm` use cuSPARSE (cusparseScsrmm2 and cusparseDcsrmm2) in CUDA kernel, and `mm` calls `addmm`. `smm` and `sspaddmm` don't have CUDA support yet.
+Functions with CUDA kernel optimized are `mm`, `addmm` and `hspmm`. `addmm` and `hspmm` use cuSPARSE (cusparseScsrmm2 and cusparseDcsrmm2) in CUDA kernel, and `mm` calls `addmm`. However, `smm` and `sspaddmm` don't have CUDA support (gets removed?).
 
 
 ### Others
