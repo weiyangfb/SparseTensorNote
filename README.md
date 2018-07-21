@@ -64,17 +64,19 @@ _get_sparse_impl(r)->set_nnz(t._nnz());
 _get_sparse_impl(r)->set_coalesced(t.is_coalesced());
 ```
 
-- Without support for 0-dim tensors, we cannot have proper support for scalar sparse tensors. This makes it unclear how to implement ops like reduction ops.
+- Without support for 0-dim tensors, we cannot have proper support for scalar sparse tensors. This makes it unclear how to implement ops like reduction ops, which is currently represented as a dense scalar. Maybe there is nothing wrong with the current representation, we just need to be minded that sparse ops can return a scalar. 
 
-- The nnz and the nnz dimension in two indices and value tensors may not be the same, some cuda kernels rely on this
+- The nnz and the nnz dimension in two indices and value tensors may not be the same, some cuda kernels rely on this.
 
 - In values, the non-nnz dimensions might not actually match the dimensions of the sparse tensor
 
 - We have dim == sparseDims + denseDims, but sparseDims cannot be 0. On one hand, this makes sense because a sparse tensor should have at least one sparse dim, but at the same time, it's in conflict with the idea of a scalar sparse tensor.
 
+- An empty sparse tensor has indices of dim = 1, which means we have to check `nnz != 0` everywhere in using a TensorAccessor of indices.
+
 ### Some of these issues are fixed by Will's PR (#9279)
 
-Current behavoir of empty sparse tensor:
+Current behavoir of an empty sparse tensor:
 ```
 >>> a = torch.sparse_coo_tensor([], [], [2, 3])
 >>> i = a._indices()
@@ -95,8 +97,8 @@ v = tensor([])
 >>> print('a.dim = %d, i.dim = %d, v.dim = %d' % (a.dim(), i.dim(), v.dim()))
 a.dim = 2, i.dim = 1, v.dim = 1
 
->>> print('a._dimI = %d, a._dimV = %d, a._nnz = %d' % (a._dimI(), a._dimV(), a._nnz()))
-a._dimI = 0, a._dimV = 0, a._nnz = 0
+>>> print('a._dimI = %d, a._sparseDims = %d, a._dimV = %d, a._denseDims = %d, a._nnz = %d' % (a._dimI(), a._sparseDims(), a._dimV(), a._denseDims(), a._nnz()))
+a._dimI = 0, a._sparseDims = 2, a._dimV = 0, a._denseDims = 0, a._nnz = 0
 ```
 
 When properly supported:
@@ -120,11 +122,7 @@ tensor([], dtype=torch.float64)
 
 This fixes:
 
-- the sparse tensor constructor accepts a scalar tensor (dim == 0) for the values tensor. This is kind of weird because you always need an nnz-dimension. However, the old code supported this and just expanded it into a dim=1 size=0 tensor. Currently we convert the scalar tensor to a dim=1 tensor.
-
-- In ATen, sparse tensor has a different internal representation invariant: an "empty" sparse tensor has dimI == 1 and dimV == 0 (this is different from dimI == 0 and dimV == 0 we had before); this ensures that we maintain the invariant that dim == dimI + dimV. "Scalar" sparse tensors are made illegal
-
-- when using TensorAccessor to access sparse indices, we need to check that nnz != 0 to make sure indices is 2D. This will go away when we properly support zero-size dimensions. 
+- An empty sparse tensor has indices of dim = 1, which means we have to check `nnz != 0` everywhere in using a TensorAccessor of indices.
 
 
 ### Autograd support
@@ -141,13 +139,16 @@ and values:
 tensor([4., 6., 8.])
 ```
 
-A lot of operators on sparse tensors don't have meaningful gradients for the non-nnz elements. e.g., log1p() would make all 0 inputs have a gradient of 1. Some potential ways to fix:
+A lot of operators on sparse tensors have densified gradients. e.g., `log1p` would make all 0 inputs have a gradient of 1, and it densifies the sparse tensor gradients. Some potential ways to fix:
 
-- Define sparse operations so that they operate only on the nnz. This works well for functions that take a single input tensor. For example, we can define sparse log1p such that implicit 0s do not participate, and it would allow us to have a sparse gradient tensor. 
+- Define special sparse operations so that they operate only on the nnz. This works well for functions that take a single input tensor. For example, we can define sparse log1p such that implicit 0s do not participate, and it would allow us to have a sparse gradient tensor. We can call this operator `s_log1p` or `nnz_log1p` (#1369 has similar discussions).
 
-- Return a dense gradient, and then run equivalent dense backwards functions for each previous sparse operation. Obviously this won't work well in conjunction with the first solution, because sparse ops and dense ops wouldn't be equivalent operations.
+- Return a dense gradient, and have backward functions able to handle both of dense and sparse gradients. No special treatment need to be done during autograd, just more functions need to be written.
 
-- Just return the gradient as a sparse tensor, even though we know it is completely dense. This is awful for performance.
+- Just return the gradient as a sparse tensor, even though we know it might be completely dense. This is awful for 
+performance.
+
+- No backward for densified gradients of sparse operator, and users need to call `to_dense` and apply dense operators instead. This will not work without backward for `to_dense`, which itself will have a densified gradients, and it brings us back to the 2nd proposal.
 
 
 ## Functions
