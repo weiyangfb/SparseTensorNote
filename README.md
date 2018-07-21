@@ -168,7 +168,7 @@ All pointwise one tensor calls dense couterpart ops on `_values`. Specialized ba
 ### Pointwise two tensor math
 
 |functions|formula|dense grad|
-|---|:---:|:---:|
+|---|---|:---:|
 |add_ / add(Sparse, Sparse, Scalar) → Sparse|add(T, S, alpha) = T + alpha * S|Y|
 |add_ / add(Dense, Sparse, Scalar) → Dense|add(T, S, alpha) = T + alpha * S|Y|
 |sub_ / sub(Sparse, Sparse, Scalar) → Sparse|sub(T, S, alpha) = T - alpha * S|Y|
@@ -186,7 +186,7 @@ All pointwise two tensor functions have properly optimized CUDA kernel except fo
 ### BLAS
 
 |functions|formula|dense grad|
-|---|:---:|:---:|
+|---|---|:---:|
 |addmm(Dense, Sparse, Dense, Scalar, Scalar) → Dense|addmm(T, S, D, beta, alpha) = beta * T + alpha * matmul(S, D)|Y|
 |sspaddmm(Sparse, Sparse, Dense, Scalar, Scalar) → Sparse|sspaddmm(T, S, D, beta, alpha) = beta * T + alpha * matmul(S, D)|Y|
 |mm(Sparse, Dense) → Dense|mm(S, D) = matmul(S, D)|Y|
