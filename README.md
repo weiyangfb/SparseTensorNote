@@ -218,7 +218,7 @@ Functions with CUDA kernel well optimized are `mm`, `addmm` and `hspmm`. `addmm`
 |max|             Y|  N|
 |bmm(S, D)|       Y|  Y|
 
-All pointwise functions for sparse can potentially call dense ops on their `_values`, we can write some helpers or macros to make all of these ops available for sparse.
+There is a list of pointwise functions for sparse can be implemented by calling dense ops on their `_values`, some helpers or macros can be written to make all of these ops available for sparse.
 - abs, acos, asin, atan, ceil, cos, cosh, erf, exp, expm1, floor, log, log10, log2, round, sin, sinh, sqrt, rsqrt, tan, trunc
 
 
