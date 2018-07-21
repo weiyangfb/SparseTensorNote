@@ -57,6 +57,23 @@ Currently, our sparse tensors are hybrid tensors, with a mix of sparse dims and 
 
 ### A couple caveats with our current system
 
+- Things we should always keep in mind
+```
+Ideal INVARIANTS:
+  _sparseDims: range [0, len(shape)]; _sparseDims + _denseDims = len(shape)
+  _denseDims : range [0, len(shape)]; _sparseDims + _denseDims = len(shape)
+  _indices.shape: dimensionality: 2,  shape: (_sparseDims, nnz)
+  _values.shape:  dimensionality: 1 + _denseDims.  shape: (nnz, shape[_sparseDims:])
+
+Actual INVARIANT differences:
+  1) _sparseDims: range [1, len(shape)] (i.e. we don't allow 0 sparse dimensions)
+  2) when nnz = 0, there is strange behavior because we lack 0-dimensional sparse tensors.  Namely:
+     dimensionality == 0, _sparseDims == 0, _denseDims == 0, _indices.shape == {0}, _values.shape == {0}
+  3) For both _indices.shape and _values.shape, the nnz dimension may be larger than nnz
+  4) For _values.shape, the non-nnz dimensions may be smaller than the corresponding dimension size, e.g.
+     a shape (2,3) sparse tensor with _sparseDims == 1, may have _values.shape: (nnz, <=2, <=3).
+```
+
 - We're keeping track of nnz, sparseDims, denseDims and coalesced independently of the indices and values tensors. For instance, we may need to write the following code to maintain the invariance:
 ```
 _get_sparse_impl(r)->set_indices_and_values(r_indices, r_values);
